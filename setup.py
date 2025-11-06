@@ -13,7 +13,7 @@ setup(
     install_requires=[
         "beautifulsoup4==4.12.3",
         "fastapi==0.115.5",
-        "Requests==2.32.3",
+        "Requests==2.32.4",
         "uvicorn==0.32.1",
         "torrentool==1.0.2",
     ],
