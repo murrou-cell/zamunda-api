@@ -77,7 +77,7 @@ class Zamunda:
 
         raise RuntimeError("Login failed after multiple attempts.")
     
-    def search(self, ss:str, user:str, password:str, provide_infohash:bool=False):
+    def search(self, ss:str, user:str, password:str, provide_infohash:bool=False, provide_files:bool=False):
         """
         Searches for torrents on the Zamunda website.
         :param ss: The search string to search for.
@@ -127,7 +127,8 @@ class Zamunda:
                         'seeders': seeds, 
                         'bg_audio': audio,
                         'size': size,
-                        'infohash': torrent.info_hash if provide_infohash else None
+                        'infohash': torrent.info_hash if provide_infohash else None,
+                        'files': torrent.files if provide_files else None
                     })
         return data
     
