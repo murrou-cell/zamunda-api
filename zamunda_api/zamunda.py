@@ -83,7 +83,8 @@ class Zamunda:
         :param ss: The search string to search for.
         :param user: The username to log in with.
         :param password: The password to log in with.
-        :param provide_magnet: Whether to provide the magnet link or the download page link.
+        :param provide_infohash: Whether to include infohash in the results.
+        :param provide_files: Whether to include file list in the results.
         """
         try:
             self.login(user,password)
@@ -131,6 +132,70 @@ class Zamunda:
                         'files': torrent.files if provide_files else None
                     })
         return data
+
+    def search_multi(self, queries, user, password, provide_infohash=False, provide_files=False):
+        """
+        Searches Zamunda with multiple search strings but logs in only once.
+
+        :param queries: list of search strings
+        :param user: login user
+        :param password: login pass
+        """
+        # Login only once
+        try:
+            self.login(user, password)
+        except Exception as e:
+            print(f"Login error: {e}")
+            return []
+
+        all_results = []
+
+        for ss in queries:
+            ss_clean = ss.replace(" ", "+")
+            url = f"{self.base}/bananas?search={ss_clean}&gotonext=1&incldead=&field=name&sort=9&type=desc"
+
+            response = self.session.get(url)
+            if response.status_code != 200:
+                print("Error:", response.status_code)
+                continue
+
+            soup = bs(response.text, 'html.parser')
+            table = soup.find('table',{'id': "zbtable"})
+
+            if not table:
+                continue
+
+            trs = table.find_all('tr')[1:]
+
+            for tr in trs:
+                try:
+                    tds = tr.find_all('td')
+                    name = tds[1].find('a').find('b').get_text()
+                    hrefs = tds[1].find('div').find_all('a')
+                    seeds = tds[-2].get_text()
+                    size = tds[-4].get_text()
+
+                    imgs = tds[1].find_all('img')
+                    audio = any(i.get('src').endswith("bgaudio.png") for i in imgs)
+
+                    for href in hrefs:
+                        href = href['href']
+                        if href.startswith('/download.php'):
+                            torrent = self.get_torrent(href)
+                            all_results.append({
+                                "name": name,
+                                "magnetlink": torrent.magnet_link,
+                                "seeders": seeds,
+                                "bg_audio": audio,
+                                "size": size,
+                                "infohash": torrent.info_hash if provide_infohash else None,
+                                "files": torrent.files if provide_files else None
+                            })
+
+                except Exception:
+                    continue
+
+        return all_results
     
     def get_torrent(self,href):
         """
